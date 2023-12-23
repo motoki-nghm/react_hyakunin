@@ -32,7 +32,9 @@ function App() {
         }
 
         // 1回目の読み上げ
-        await performAsyncRead(textToRead)
+        const firstCardTimeoutId = setTimeout(async () => {
+          await performAsyncRead(textToRead)
+        }, 2000)
 
         const timeoutId = setTimeout(async () => {
           await performAsyncRead(textToRead)
@@ -40,14 +42,17 @@ function App() {
           if (isMounted) {
             setCurrentCard((prevCard) => prevCard + 1)
           }
-        }, 2000)
+        }, 7000)
 
-        return () => clearTimeout(timeoutId)
+        return () => {
+          clearTimeout(firstCardTimeoutId)
+          clearTimeout(timeoutId)
+        }
       } else if (playing && currentCard >= num) {
         // 最後のカード読み上げ完了後、2回目の読み上げも終わるまで待ってから handleStop を呼ぶ
         const lastCardTimeoutId = setTimeout(() => {
           handleStop()
-        }, 7000) // カードごとに5秒待つ + 2秒
+        }, 5000)
 
         return () => clearTimeout(lastCardTimeoutId)
       }
@@ -56,7 +61,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [playing, currentCard])
+  }, [playing, currentCard, num])
 
   const performAsyncRead = async (text) => {
     return new Promise((resolve) => {
