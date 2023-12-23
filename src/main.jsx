@@ -8,8 +8,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HelmetProvider>
     <Helmet>
-      <html lang="ja"/>
-    <title>かるた</title>
+    <title>百人一首読み上げアプリ</title>
     <meta name="googlebot" content="noindex" />
     <meta name="robots" content="noindex" />
     </Helmet>

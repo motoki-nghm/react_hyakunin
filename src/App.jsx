@@ -1,110 +1,127 @@
-import { useEffect, useState} from 'react';
-import './App.css';
-import karutaData from '../katuta-data.json';
-import imgURL from './assets/warm.png';
+import { useEffect, useState } from 'react'
+import './App.css'
+import Button from './Button'
+import hyakunin from '../hyakunin.json'
 
 function App() {
-  const [playing, setPlaying] = useState(false);
-  const [currentCard, setCurrentCard] = useState(0);
-  const  [num, setNum] = useState(karutaData.length);
+  const [playing, setPlaying] = useState(false)
+  const [currentCard, setCurrentCard] = useState(0)
+  const [num, setNum] = useState(hyakunin.length)
 
-  const shuffleData = ()=>{
-    const array = karutaData.slice();
-    for(let i = array.length - 1; i > 0; i--){
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+  const shuffleData = () => {
+    const array = hyakunin.slice()
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[array[i], array[j]] = [array[j], array[i]]
     }
-    return array;
+    return array
   }
-  useEffect(() => {
-      const fetchData = async () => {
-        if (playing && currentCard < num) {
-          const textToRead = shuffleData()[currentCard].text; // カードのテキストを取得するためにcurrentCardのインデックスを使用
-        // 1回目の読み上げ
-        await performAsyncRead(textToRead);
 
-        // 2回目の読み上げを1回目の読み上げの後に2秒後にスケジュール
-        setTimeout(async () => {
-          await performAsyncRead(textToRead);
-          setTimeout(() => {
-            setCurrentCard((prevCard) => prevCard + 1); // 次のカードに進む
-          },5000)
-        }, 2000);
-        } else if(playing && currentCard >= num){
-          handleStop();
+  useEffect(() => {
+    let isMounted = true
+    const fetchData = async () => {
+      if (playing && currentCard < num) {
+        const shuffledData = shuffleData()
+        const cardData = shuffledData[currentCard]
+        const textToRead = cardData.bodyKana
+        const imageURL = cardData.imageURL
+
+        const imageEl = document.querySelector('.card__img')
+        if (imageEl) {
+          imageEl.src = imageURL
         }
-      };
-      fetchData();
-  }, [playing,currentCard]);
+
+        // 1回目の読み上げ
+        await performAsyncRead(textToRead)
+
+        const timeoutId = setTimeout(async () => {
+          await performAsyncRead(textToRead)
+
+          if (isMounted) {
+            setCurrentCard((prevCard) => prevCard + 1)
+          }
+        }, 2000)
+
+        return () => clearTimeout(timeoutId)
+      } else if (playing && currentCard >= num) {
+        // 最後のカード読み上げ完了後、2回目の読み上げも終わるまで待ってから handleStop を呼ぶ
+        const lastCardTimeoutId = setTimeout(() => {
+          handleStop()
+        }, 7000) // カードごとに5秒待つ + 2秒
+
+        return () => clearTimeout(lastCardTimeoutId)
+      }
+    }
+    fetchData()
+    return () => {
+      isMounted = false
+    }
+  }, [playing, currentCard])
 
   const performAsyncRead = async (text) => {
     return new Promise((resolve) => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.8
 
       utterance.onend = () => {
-        resolve();
-      };
+        resolve()
+      }
 
-      speechSynthesis.speak(utterance);
-    });
-  };
+      speechSynthesis.speak(utterance)
+    })
+  }
 
   const handleStart = (numCards) => {
-    setCurrentCard(0);
-    setNum(numCards);
-    setPlaying(true);
-  };
+    setCurrentCard(0)
+    setNum(numCards)
+    setPlaying(true)
+  }
 
   const handleStop = () => {
-    setCurrentCard(0);
-    setPlaying(false);
-  };
+    setCurrentCard(0)
+    setPlaying(false)
+  }
 
   return (
     <>
-    <head>
-      <title>かるた</title>
-      <meta name="robots" content="noindex" />
-      <meta name="googlebot" content="noindex" />
-    </head>
-    <h1 className="title text-3xl lg:text-6xl">
-        <span className='inline-block'>はらぺこあおむし</span><span className='sm:pl-2 inline-block'>かるた</span>
-    </h1>
-    {playing?(
-      <>
-      <div className="grid gap-6 justify-center lg:grid-cols-3 mt-10">
-          <button onClick={()=>handleStart(karutaData.length)} disabled={playing} className='w-fit px-10 py-3 lg:py-6 text-gray-700 bg-gray-500 text-gray-200'>
-            さいしょから
-          </button>
-          <button onClick={() => handleStart(10)}disabled={playing}  className='px-10 py-3 lg:py-6  text-gray-700 bg-gray-500 text-gray-200'>10まい</button>
-          <button onClick={() => handleStart(20)}disabled={playing}  className='px-10 py-3 lg:py-6  text-gray-700 bg-gray-500 text-gray-200'>20まい</button>
-      </div>
-      <button onClick={handleStop} disabled={!playing} className='py-3 lg:py-6 px-20 mt-6 lg:mt-10 text-gray-700 bg-red-200'>
-        おわり
-      </button>
-      </>
-
-    ):(
-      <>
-      <div className="grid gap-6 justify-center lg:grid-cols-3 mt-10">
-          <button onClick={()=>handleStart(karutaData.length)} disabled={playing} className='w-fit px-10 py-3 lg:py-6 text-gray-700 bg-red-200'>
-            さいしょから
-          </button>
-          <button onClick={() => handleStart(10)}disabled={playing}  className='px-10 py-3 lg:py-6  text-gray-700 bg-red-200'>10まい</button>
-          <button onClick={() => handleStart(20)}disabled={playing}  className='px-10 py-3 lg:py-6  text-gray-700 bg-red-200'>20まい</button>
-      </div>
-      <button onClick={handleStop} disabled={!playing} className='py-3 lg:py-6 px-20 mt-6 lg:mt-10 text-gray-700 bg-gray-500 text-gray-200'>
-        おわり
-      </button>
-      </>
-
-    )}
-      <div className="warm__img w-16 lg:w-28 h-atuo absolute bottom-24">
-        <img src={imgURL} alt="" className='warm'/>
+      <div className="h-screen grid place-items-center lg:grid-cols-2 gap-4 lg:gap-8">
+        <div className="grid  gap-2 lg:gap-6 justify-items-center">
+          <h1 className="title text-4xl lg:text-8xl">百人一首</h1>
+          <>
+            <div className="flex flex-col lg:flex-row gap-3 mt-6 lg:mt-10">
+              <Button
+                onClick={() => handleStart(hyakunin.length)}
+                disabled={playing}
+                label="始める"
+              />
+              <Button
+                onClick={() => handleStart(10)}
+                disabled={playing}
+                label="10枚"
+              />
+              <Button
+                onClick={() => handleStart(20)}
+                disabled={playing}
+                label="20枚"
+              />
+            </div>
+            <Button onClick={handleStop} disabled={!playing} label="終わり" />
+          </>
+        </div>
+        <div className="container --right">
+          {playing ? (
+            <figure className="card__container">
+              <img alt="" className="card__img" />
+            </figure>
+          ) : (
+            <div className="card__container border-2 border-gray-700 border-dashed grid place-items-center">
+              <p className="text-2xl lg:text-5xl">画像</p>
+            </div>
+          )}
+        </div>
       </div>
     </>
-  );
+  )
 }
 
-export default App;
+export default App
